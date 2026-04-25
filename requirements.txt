@@ -6,4 +6,3 @@ pyjwt==2.8.1
 python-multipart==0.0.6
 pillow==10.1.0
 bcrypt==4.1.1
-python -m venv venv
