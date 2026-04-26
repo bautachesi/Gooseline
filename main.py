@@ -154,7 +154,7 @@ def init_db():
 
 def get_db():
     """Obtiene conexion a la base de datos"""
-    conn = sqlite3.connect(DATABASE_PATH)
+    conn = sqlite3.connect(DATABASE_PATH, check_same_thread=False)
     conn.row_factory = sqlite3.Row
     return conn
 
@@ -421,11 +421,13 @@ async def upload_avatar(token: str, file: UploadFile = File(...)):
         raise HTTPException(status_code=500, detail=f"Error: {str(e)}")
 
 @app.get("/api/user/contacts")
-def get_contacts(token: str, conn: sqlite3.Connection = Depends(get_db)):
+def get_contacts(token: str):
     """Obtiene los contactos del usuario"""
     
+    conn = None
     try:
         current_user = get_current_user(token)
+        conn = get_db()
         cursor = conn.cursor()
         
         cursor.execute('''
@@ -448,22 +450,26 @@ def get_contacts(token: str, conn: sqlite3.Connection = Depends(get_db)):
         return contacts
         
     except HTTPException as e:
-        conn.close()
+        if conn:
+            conn.close()
         raise e
     except Exception as e:
-        conn.close()
+        if conn:
+            conn.close()
         print(f"Error obteniendo contactos: {str(e)}")
         raise HTTPException(status_code=500, detail=f"Error: {str(e)}")
 
 @app.post("/api/user/contacts/add")
-def add_contact(token: str, request: dict, conn: sqlite3.Connection = Depends(get_db)):
+def add_contact(token: str, request: dict):
     """Anade un contacto"""
     
+    conn = None
     try:
         current_user = get_current_user(token)
         contact_goose_id = request.get('goose_id', '').upper()
         contact_nickname = request.get('nickname', '')
         
+        conn = get_db()
         cursor = conn.cursor()
         
         cursor.execute("SELECT * FROM users WHERE goose_id = ?", (contact_goose_id,))
@@ -510,20 +516,24 @@ def add_contact(token: str, request: dict, conn: sqlite3.Connection = Depends(ge
         return {"message": "Contacto anadido"}
         
     except HTTPException as e:
-        conn.close()
+        if conn:
+            conn.close()
         raise e
     except Exception as e:
-        conn.close()
+        if conn:
+            conn.close()
         print(f"Error anadiendo contacto: {str(e)}")
         raise HTTPException(status_code=500, detail=f"Error: {str(e)}")
 
 # ============= RUTAS DE MENSAJES =============
 @app.get("/api/messages/{contact_goose_id}")
-def get_messages(contact_goose_id: str, token: str, conn: sqlite3.Connection = Depends(get_db)):
+def get_messages(contact_goose_id: str, token: str):
     """Obtiene el historial de mensajes"""
     
+    conn = None
     try:
         current_user = get_current_user(token)
+        conn = get_db()
         cursor = conn.cursor()
         
         cursor.execute('''
@@ -550,10 +560,12 @@ def get_messages(contact_goose_id: str, token: str, conn: sqlite3.Connection = D
         return messages
         
     except HTTPException as e:
-        conn.close()
+        if conn:
+            conn.close()
         raise e
     except Exception as e:
-        conn.close()
+        if conn:
+            conn.close()
         print(f"Error obteniendo mensajes: {str(e)}")
         raise HTTPException(status_code=500, detail=f"Error: {str(e)}")
 

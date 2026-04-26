@@ -552,7 +552,7 @@ async function renderMessages() {
     const chatMessagesList = messages[chatId] || [];
 
     if (chatMessagesList.length === 0) {
-        chatMessages.innerHTML = '<div class="empty-chat-messages">No messages yet. Start chatting!</div>';
+        chatMessages.innerHTML = '';
         return;
     }
 
