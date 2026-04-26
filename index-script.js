@@ -508,13 +508,18 @@ async function renderContactsList(filterText = '') {
             if (contact) {
                 activeChat = contact;
                 
-                try {
-                    const msgs = await fetchMessages(gooseId);
-                    messages[gooseId] = msgs;
-                    console.log(`✓ ${msgs.length} mensajes cargados para ${gooseId}`);
-                } catch (error) {
-                    console.error('Error cargando mensajes:', error);
-                    messages[gooseId] = [];
+                // Only load messages if not already loaded for this chat
+                if (!messages[gooseId]) {
+                    try {
+                        const msgs = await fetchMessages(gooseId);
+                        messages[gooseId] = msgs;
+                        console.log(`✓ ${msgs.length} mensajes cargados para ${gooseId}`);
+                    } catch (error) {
+                        console.error('Error cargando mensajes:', error);
+                        messages[gooseId] = [];
+                    }
+                } else {
+                    console.log(`✓ Usando mensajes cacheados para ${gooseId}: ${messages[gooseId].length} mensajes`);
                 }
                 
                 renderChat();
@@ -529,8 +534,9 @@ async function renderMessages() {
 
     const chatId = activeChat.goose_id;
     
-    // Load messages if not already loaded for this chat
+    // Always ensure messages are loaded for this chat
     if (!messages[chatId]) {
+        console.log(`Cargando mensajes para ${chatId} desde servidor...`);
         try {
             const msgs = await fetchMessages(chatId);
             messages[chatId] = msgs;
@@ -539,12 +545,14 @@ async function renderMessages() {
             console.error('Error cargando mensajes:', error);
             messages[chatId] = [];
         }
+    } else {
+        console.log(`Usando ${messages[chatId].length} mensajes cacheados para ${chatId}`);
     }
 
     const chatMessagesList = messages[chatId] || [];
 
     if (chatMessagesList.length === 0) {
-        chatMessages.innerHTML = '';
+        chatMessages.innerHTML = '<div class="empty-chat-messages">No messages yet. Start chatting!</div>';
         return;
     }
 
@@ -564,20 +572,28 @@ function sendMessage(text) {
     const chatId = activeChat.goose_id;
     if (!messages[chatId]) messages[chatId] = [];
 
-    messages[chatId].push({
+    const messageData = {
         text: text.trim(),
         time: getCurrentTime(),
         isOwn: true
-    });
+    };
 
+    messages[chatId].push(messageData);
+    console.log(`Mensaje agregado localmente para ${chatId}: ${text.trim()}`);
+    
     renderMessages();
 
+    // Send via WebSocket
     if (WS && WS.readyState === WebSocket.OPEN) {
-        WS.send(JSON.stringify({
+        const wsData = {
             type: 'message',
             receiver_goose_id: chatId,
             text: text.trim()
-        }));
+        };
+        WS.send(JSON.stringify(wsData));
+        console.log(`Mensaje enviado via WebSocket a ${chatId}`);
+    } else {
+        console.error('WebSocket no está conectado');
     }
 
     if (activeChat.isBot) {
