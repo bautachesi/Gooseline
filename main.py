@@ -475,13 +475,25 @@ def add_contact(token: str, request: dict, conn: sqlite3.Connection = Depends(ge
         if cursor.fetchone():
             raise HTTPException(status_code=400, detail="El contacto ya existe")
         
+        # Get current user's info for the reverse contact
+        cursor.execute("SELECT username FROM users WHERE goose_id = ?", (current_user['goose_id'],))
+        current_user_data = cursor.fetchone()
+        current_user_name = current_user_data['username'] if current_user_data else current_user['goose_id']
+        
+        # Add contact for current user
         cursor.execute('''
             INSERT INTO contacts (user_goose_id, contact_goose_id, contact_nickname)
             VALUES (?, ?, ?)
         ''', (current_user['goose_id'], contact_goose_id, contact_nickname))
         
+        # Add reverse contact (contact adds current user)
+        cursor.execute('''
+            INSERT INTO contacts (user_goose_id, contact_goose_id, contact_nickname)
+            VALUES (?, ?, ?)
+        ''', (contact_goose_id, current_user['goose_id'], current_user_name))
+        
         conn.commit()
-        print(f"Contacto anadido: {current_user['goose_id']} -> {contact_goose_id}")
+        print(f"Contacto bidirectional anadido: {current_user['goose_id']} <-> {contact_goose_id}")
         
         return {"message": "Contacto anadido"}
         
