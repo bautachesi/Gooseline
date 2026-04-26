@@ -528,6 +528,19 @@ async function renderMessages() {
     if (!chatMessages || !activeChat) return;
 
     const chatId = activeChat.goose_id;
+    
+    // Load messages if not already loaded for this chat
+    if (!messages[chatId]) {
+        try {
+            const msgs = await fetchMessages(chatId);
+            messages[chatId] = msgs;
+            console.log(`✓ ${msgs.length} mensajes cargados para ${chatId}`);
+        } catch (error) {
+            console.error('Error cargando mensajes:', error);
+            messages[chatId] = [];
+        }
+    }
+
     const chatMessagesList = messages[chatId] || [];
 
     if (chatMessagesList.length === 0) {
@@ -895,12 +908,21 @@ function renderChat() {
                 try {
                     const result = await uploadAvatar(file);
                     
-                    const reader = new FileReader();
-                    reader.onload = (event) => {
-                        currentUser.avatar = event.target.result;
-                        profileAvatar.src = event.target.result;
-                    };
-                    reader.readAsDataURL(file);
+                    // Update current user avatar with the server path
+                    currentUser.avatar = result.avatar;
+                    profileAvatar.src = result.avatar;
+                    
+                    // Refresh contacts list to show updated avatar
+                    const contactsData = await fetchContacts();
+                    contacts = contactsData;
+                    
+                    // Update active chat avatar if it's the current user
+                    if (activeChat && activeChat.goose_id === currentUser.gooseId) {
+                        activeChat.avatar = result.avatar;
+                        renderChat();
+                    }
+                    
+                    console.log('✓ Avatar actualizado correctamente');
                 } catch (error) {
                     console.error('Error al subir avatar:', error);
                 }
