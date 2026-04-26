@@ -354,7 +354,9 @@ async def upload_avatar(token: str, file: UploadFile = File(...)):
     
     conn = None
     try:
-        print(f"Token recibido: {token[:20]}...")
+        # Get token from query parameter or form data
+        if not token:
+            raise HTTPException(status_code=401, detail="Token no proporcionado")
         
         current_user = get_current_user(token)
         print(f"Usuario: {current_user['goose_id']}")
@@ -378,6 +380,9 @@ async def upload_avatar(token: str, file: UploadFile = File(...)):
         
         contents = await file.read()
         print(f"Bytes leidos: {len(contents)}")
+        
+        if len(contents) == 0:
+            raise HTTPException(status_code=400, detail="Archivo vacío")
         
         with open(filepath, 'wb') as f:
             bytes_written = f.write(contents)
@@ -481,12 +486,14 @@ def add_contact(token: str, request: dict, conn: sqlite3.Connection = Depends(ge
         current_user_name = current_user_data['username'] if current_user_data else current_user['goose_id']
         
         # Add contact for current user
+        print(f"Añadiendo contacto para {current_user['goose_id']} -> {contact_goose_id}")
         cursor.execute('''
             INSERT INTO contacts (user_goose_id, contact_goose_id, contact_nickname)
             VALUES (?, ?, ?)
         ''', (current_user['goose_id'], contact_goose_id, contact_nickname))
         
         # Add reverse contact (contact adds current user)
+        print(f"Añadiendo contacto inverso para {contact_goose_id} -> {current_user['goose_id']}")
         cursor.execute('''
             INSERT INTO contacts (user_goose_id, contact_goose_id, contact_nickname)
             VALUES (?, ?, ?)
@@ -494,6 +501,11 @@ def add_contact(token: str, request: dict, conn: sqlite3.Connection = Depends(ge
         
         conn.commit()
         print(f"Contacto bidirectional anadido: {current_user['goose_id']} <-> {contact_goose_id}")
+        
+        # Verify contacts were added
+        cursor.execute("SELECT COUNT(*) FROM contacts WHERE user_goose_id = ?", (contact_goose_id,))
+        count = cursor.fetchone()[0]
+        print(f"Verificación: {contact_goose_id} tiene {count} contactos")
         
         return {"message": "Contacto anadido"}
         
