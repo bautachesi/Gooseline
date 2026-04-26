@@ -1,5 +1,5 @@
 // ============= CONFIGURACIÓN API =============
-const API_BASE = "http://localhost:8000/api";
+const API_BASE = "https://gooseline.onrender.com/api";
 let TOKEN = localStorage.getItem("gooseline_token");
 let CURRENT_USER_GOOSE_ID = localStorage.getItem("gooseline_goose_id");
 let WS = null;
@@ -225,7 +225,7 @@ async function uploadAvatar(file) {
 function connectWebSocket() {
     if (!CURRENT_USER_GOOSE_ID) return;
     
-    WS = new WebSocket(`ws://localhost:8000/ws/${CURRENT_USER_GOOSE_ID}`);
+    WS = new WebSocket(`wss://gooseline.onrender.com/ws/${CURRENT_USER_GOOSE_ID}`);
     
     WS.onopen = () => {
         console.log('✓ WebSocket conectado');
