@@ -454,8 +454,6 @@ def get_contacts(token: str):
             conn.close()
         raise e
     except Exception as e:
-        if conn:
-            conn.close()
         print(f"Error obteniendo contactos: {str(e)}")
         raise HTTPException(status_code=500, detail=f"Error: {str(e)}")
 
@@ -463,11 +461,19 @@ def get_contacts(token: str):
 def add_contact(token: str, request: dict):
     """Anade un contacto"""
     
+    print(f"===== INICIANDO ADD CONTACT =====")
+    print(f"Request: {request}")
+    print(f"Token: {token[:20] if token else 'None'}...")
+    
     conn = None
     try:
         current_user = get_current_user(token)
         contact_goose_id = request.get('goose_id', '').upper()
         contact_nickname = request.get('nickname', '')
+        
+        print(f"Usuario actual: {current_user['goose_id']}")
+        print(f"Contacto a añadir: {contact_goose_id}")
+        print(f"Nickname: {contact_nickname}")
         
         conn = get_db()
         cursor = conn.cursor()
