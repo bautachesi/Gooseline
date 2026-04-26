@@ -602,5 +602,5 @@ if __name__ == "__main__":
     print("Iniciando Gooseline API...")
     print(f"Base de datos: {DATABASE_PATH}")
     print(f"Carpeta de uploads: {UPLOAD_DIR}")
-    print("Accede a http://localhost:8000")
+    print("Accede a gooseline.onrender.com")
     uvicorn.run(app, host="0.0.0.0", port=8000, log_level="info")
